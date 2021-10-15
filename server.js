@@ -8,6 +8,9 @@ import Express from "express";
 // im portar libreria de mongo, para poder conectarnos a la base de datos
 import { MongoClient } from "mongodb";
 
+import Cors from "cors";
+
+
 // String de conexion
 const stringConexion = 'mongodb+srv://alramirez:alramirez@testproyectobd.nz3yg.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
 
@@ -26,6 +29,9 @@ const app = Express();
 
 // cuando nos llega una solicitud tipo json en un request, convierte el body en un abjeto que pdemos utilizar.
 app.use(Express.json());
+
+//usar el cors para la comunicacion al backend desde cualquier lado html etc
+app.use(Cors());
 
 // Peticion tipo GET en el link /Vehiculos
 app.get('/vehiculos', (req, res)=>{
@@ -75,7 +81,7 @@ const main = () =>{
     // conectarme a la base de datos
     client.connect((err, db)=>{
         if (err){
-            console.error('Erro conectando a la base de datos');
+            console.error('Error conectando a la base de datos');
             return 'error';
         }
         conexion = db.db('concesionario');
