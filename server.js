@@ -3,11 +3,12 @@
 // const express = require('express')
 
 //3.2 hacer el import normal, agregamos el "type":"module", en el package.json
-import Express from "express";
+import Express, { response } from "express";
 
 // im portar libreria de mongo, para poder conectarnos a la base de datos
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 
+// importar cors para la comunicacion entre el bak y el front
 import Cors from "cors";
 
 
@@ -21,7 +22,7 @@ const client = new MongoClient(stringConexion, {
     useUnifiedTopology: true,
 });
 // Variable global
-let conexion;
+let baseDeDatos;
 
 
 // poner app como funcion de express()
@@ -36,7 +37,7 @@ app.use(Cors());
 // Peticion tipo GET en el link /Vehiculos
 app.get('/vehiculos', (req, res)=>{
     console.log('alguien hizo get en la ruta /vehiculos');
-    conexion.collection("vehiculo").find({}).limit(50).toArray((err, result)=>{
+    baseDeDatos.collection("vehiculo").find({}).limit(50).toArray((err, result)=>{
         if (err){
             res.status(400).send('Error Consultando los vehiculos');
         } else {
@@ -57,7 +58,7 @@ app.post('/vehiculos/nuevo', (req, res) =>{
             Object.keys(datosVehiculo).includes('modelo')
             ){
             // implementar codigo para crear vehiculo creado a la BD
-            conexion.collection('vehiculo').insertOne(datosVehiculo, (err, result)=>{
+            baseDeDatos.collection('vehiculo').insertOne(datosVehiculo, (err, result)=>{
                 if (err) {
                     console.error(err);
                     res.sendStatus(500);
@@ -75,6 +76,39 @@ app.post('/vehiculos/nuevo', (req, res) =>{
     }
 });
 
+// Peticion tipo Pach en ekl link: /vehiculos/editar
+app.patch('/vehiculos/editar', (req, res) => {
+    const edicion = req.body;
+    console.log(edicion);
+    const filtroVehiculo = { _id: new ObjectId(edicion.id)};
+    delete edicion.id;
+    const operacion = {
+        $set: edicion,
+    };
+    baseDeDatos.collection('vehiculo').findOneAndUpdate(filtroVehiculo, operacion, { upsert: true, returnOriginal: true }, (err, result) => {
+        if (err){
+            console.error("Error actualizando el vehiculo ", err);
+            res.sendStatus(500);
+        } else {
+            console.log("Actualizado Con Exito");
+            res.sendStatus(200);
+        }
+    });
+});
+
+
+// Peticion tipo DELETE en ekl link:
+app.delete('/vehiculos/eliminar', (req, res) => {
+    const filtroVehiculo = { _id: new ObjectId(req.body.id)};
+    baseDeDatos.collection('vehiculo').deleteOne(filtroVehiculo, (err, result) => {
+        if (err){
+            console.error(err);
+            response.sendStatus(500);
+        } else {
+            res.sendStatus(200);
+        }
+    });
+});
 
 // primero se conecta a la base de datos y luiego retorna una escucha en el puerto 5000
 const main = () =>{
@@ -84,7 +118,7 @@ const main = () =>{
             console.error('Error conectando a la base de datos');
             return 'error';
         }
-        conexion = db.db('concesionario');
+        baseDeDatos = db.db('concesionario');
         console.log('Conexion Exitosa');
         // 5. agregar puerto de escucha
         return app.listen(5000, () =>{
